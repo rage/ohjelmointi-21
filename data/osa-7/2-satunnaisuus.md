@@ -199,6 +199,97 @@ Lisätietoa löydät esimerkiksi sivulta <a href="https://www.random.org/randomn
 
 </text-box>
 
+
+<text-box variant="info" name="Kryptografinen satunnaisuus">
+
+Vaikka pseudosatunnaiset luvut eivät olekaan aidosti satunnaisia, kaikki pseudosatunnaislukuja generoivat algoritmit eivät ole samanarvoisia. Ohjelmointikielten oletuksena käyttämät satunnaislukugeneraattorit painottavat yleensä nopeutta, ja niiden satunnaisuus soveltuu hyvin esimerkiksi sääsimulaatioiden tuottamiseen.
+
+Tietoturvallisia pseudosatunnaislukuja luodaan erityisillä, nk. kryptografisilla pseudosatunnaislukugeneraattoreilla. Näillä algoritmeilla on edellisestä poiketen erityisiä vaatimuksia kuten se, ettei niiden luomia lukuja ole mahdollista ennustaa, vaikkapa tarkkailemalla suurta määrä algoritmin aiemmin luomia lukuja.
+
+[SystemRandom()](https://docs.python.org/3/library/random.html#random.SystemRandom) luokka ja [Secrets](https://docs.python.org/3/library/secrets.html) moduuli tekevät tietoturvallisten satunnaislukuoperaatioiden käytöstä Pythonissa helppoa:
+
+```python
+import random
+
+luku = random.randint(1, 100)  # Tämä ei ole turvallinen tapa!
+luku = random.SystemRandom().randint(1, 100)  # Tämä on turvallinen!
+
+from string import ascii_letters
+merkki = random.choice(ascii_letters)  # Ei ole turvallinen!
+merkki = random.SystemRandom().choice(ascii_letters)  # Turvallinen!
+
+# Satunnaisten tavujonojen luontitapa poikkeaa hieman edellisistä
+import secrets
+avainpituus = 32
+salausavain = bytes(random.getrandbits(8) for _ in range(avainpituus))  # Ei ole turvallinen!
+salausavain = secrets.token_bytes(avainpituus)  # Turvallinen!
+```
+
+Tutustu myös Secrets-modulin [resepteihin](https://docs.python.org/3/library/secrets.html#recipes-and-best-practices).
+
+#### Mistä tietää onko ohjelmallisesti luotu salasana/salausavain tarpeeksi vahva?
+
+Salaisuuksien vahvuutta mitataan sen sisältämän informaation määrällä. Tätä entropiaksi kutsuttua suuretta voisi kuvailla siten, että se on lyhin mahdollinen tapa esittää kyseinen informaatio, vaikkapa ykkösten ja nollien jonona. Ylläolevat turvallisten algoritmien kutsut tekevät valituista luvuista, merkeistä, tai tavuista laskennallisesti mahdottomia ennustaa, mutta on helppo ymmärtää, että vaikka loisi turvallisella algoritmilla luvun väliltä 0000..9999, se löytyy nopeasti ohjelmallisella kokeilulla: tehokas kotitietokone pystyy tänä päivänä kokeilemaan kymmeniä miljardeja salasanoja sekunnissa.
+
+Salaisuuksien vahvuus on sama kuin yhdistelmien lukumäärä. Yhdistelmien määrä saadaan laskemalla merkkiavaruus<sup>pituus</sup>. Edellämainitussa esimerkissä merkkiavaruuden muodostavat siis luvut 0-9 (10 erilaista symbolia), ja merkkiavaruuden suuruus kerrottuna itsellään neljä kertaa (salaisuuden pituus) antaa yhdistelmien määräksi `10^4 = 10*10*10*10 = 10 000`. 
+
+Salaisuuksien vahvuutta on hankala mitata pituuden avulla, koska merkkiavaruus vaihtelee tapauskohtaisesti, mikä taas vaikuttaa yhdistelmien määrään. Esimerkiksi 10 symbolin mittainen salaisuus
+
+* desimaaliluvuilla 0-9 (10 symbolia) mahdollistaa 10^10 yhdistelmää
+* heksadesimaaliluvuilla 0-F (16 symbolia) mahdollistaa ~10^12 yhdistelmää 
+* aakkosilla a-z (26 symbolia) mahdollistaa ~10^14 yhdistelmää
+* tavuilla 0x00-0xFF (256 symbolia) mahdollistaa 10^24 yhdistelmää
+  
+Vahvuussuosituksen voisi ilmaista yhdistelmien minimimääränä, mutta sopiva esitysmuoto, esim. 10<sup>38</sup> tuntuu irralliselta ja se on jokseenkin vaikea sovittaa tietokoneelle, joka operoi biteillä ja siten 2-kantaisella lukujärjestelmällä.
+
+Salaisuuksien vahvuus ilmaistaan tämän vuoksi lähes aina ns. bittivahvuutena, joka kuvaa sitä, kuinka monella ykkösellä ja nollalla kaikki yhdistelmät on mahdollista esittää. Huomionarvoisena lisäyksenä, tämä tarkoittaa että salaisuuden pituuden kasvattaminen yhdellä bitillä kaksinkertaistaa yhdistelmien määrän, ja siten turvallisuuden. Bittivahvuus saadaan laskemalla 2-kantainen logaritmi yhdistelmien lukumäärästä:
+
+```python
+import math
+from string import digits
+merkkiavaruus = len(digits)
+salasanan_pituus = 4
+yhdistelmien_maara = merkkiavaruus ** salasanan_pituus
+
+salasanan_bittivahvuus = math.log2(yhdistelmien_maara)
+print(f"{salasanan_bittivahvuus:.1f}")
+```
+
+<sample-output>
+
+13.3  # bittiä
+
+</sample-output>
+
+Miten vahvan salasanan hyökkääjä pystyy sitten murtamaan? Tehokas kotitietokone pystyy murtamaan vuodessa n. 60-bittisen salasanan, ja akateemiset pilvilaskentaa hyödyntävät ennätykset yltävät n. 80-bittisiin salaisuuksiin. Suuribudjettisten valtiollisten toimijoiden tekemien, kohdistettujen laskentahyökkäyksien arvioidaan murtavan n. 90-bittisiä salaisuuksia. 
+
+Koska hyökkääjien kyvyt vaihtelevat suuresti, salaisuuden entropialle asetetaan tietoturvaa suunnitellessa ns. laskennallinen turvavara (engl. computational headroom). Hyvä nyrkkisääntö on, että alle 128-bittisiä salaisuuksia ei pidä käyttää, ja yli 256-bittinen salaisuus ei lisää tietoturvaa mitenkään hyödyllisellä tavalla. 
+
+Näitä lukuja kuvaa mm. Euroopan kryptologisen tutkimushankkeen (ECRYPT) antama ohjeistus, joka löytyy osoitteesta https://www.keylength.com/en/3/ Salasanojen bittivahvuutta ei ole listattu, mutta niiden tulisi olla sama kuin symmetristen avainten vahvuuden. 
+
+Tätä informaatiota soveltaen, bittivahvuutta vastaavan salasanapituuden löytäminen -- kun merkkiavaruuden koko on tiedossa -- on helppoa:
+
+```python
+import math
+from string import ascii_letters
+
+haluttu_bittivahvuus = 256
+yhdistelmien_maara = 2**haluttu_bittivahvuus
+merkkiavaruus = len(ascii_letters)
+tarvittava_pituus = math.ceil(math.log(yhdistelmien_maara, merkkiavaruus))
+
+print(tarvittava_pituus)
+```
+
+<sample-output>
+
+45  # merkkiä
+
+</sample-output>
+
+</text-box>
+
+
 <programming-exercise name='Salasanan arpoja, osa 1' tmcname='osa07-05_salasanan_arpoja_1'>
 
 Tee funktio, jonka avulla on mahdollista luoda halutun pituisia satunnaisista pienistä kirjaimista (väliltä a-z) muodostettuja salasanoja.
