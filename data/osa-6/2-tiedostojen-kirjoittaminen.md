@@ -137,9 +137,9 @@ Tiedostoon lisäämisen sijaan on usein yksinkertaisinta kirjoittaa tiedosto kok
 
 <programming-exercise name='Päiväkirja' tmcname='osa06-11_paivakirja'>
 
-Tee ohjelma, joka mallintaa yksinkertaista päiväkirjaa. Ohjelman tulee tallentaa päiväkirjamerkinnät tiedostoon `paivakirja.txt`. Kun ohjelma käynnistetään, se lukee merkinnät tiedostosta.
+Tee ohjelma, joka mallintaa yksinkertaista päiväkirjaa. Ohjelman tulee tallentaa päiväkirjamerkinnät tiedostoon `paivakirja.txt`. Ohjelman tulee lukea tallennetut merkinnät tiedostosta vasta kun käyttäjä valitsee 2, lue merkinnät.
 
-Huom! Paikalliset testit voivat muuttaa tiedoston sisältöä - kopioi siis tiedosto talteen ennen testien ajamista, jos haluat säilyttää sen sisällön.
+Huom! Paikalliset testit voivat muuttaa tiedoston sisältöä - kopioi siis tiedosto talteen ennen testien ajamista, jos haluat säilyttää sen sisällön. Jos luet tiedoston heti ohjelman suorituksen alussa palvelimen testit palauttavat virheen.
 
 Ohjelman tulee toimia seuraavan esimerkin mukaisesti:
 
